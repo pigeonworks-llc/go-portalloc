@@ -1,6 +1,6 @@
 # go-portalloc
 
-[![Go Version](https://img.shields.io/badge/go-1.25+-blue.svg)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/go-1.24+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 > **Kill "Port Already in Use" Forever**
@@ -231,7 +231,7 @@ Atomic file creation: O_CREATE | O_EXCL | O_WRONLY
 ## 📊 Performance
 
 ```
-Benchmark Results (Apple M1, Go 1.25.1):
+Benchmark Results (Apple M1, Go 1.24+):
 
 ID Generation:           ~100 μs/op
 Port Allocation (5):     ~2 ms/op
