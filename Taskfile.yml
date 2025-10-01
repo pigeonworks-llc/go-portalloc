@@ -1,0 +1,145 @@
+version: '3'
+
+vars:
+  BINARY_NAME: go-portalloc
+  BUILD_DIR: ./bin
+  CMD_DIR: ./cmd/go-portalloc
+  COVERAGE_FILE: coverage.out
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  # Development
+  dev:
+    desc: Quick development check (format + lint + test)
+    cmds:
+      - task: fmt
+      - task: lint
+      - task: test
+
+  # Testing
+  test:
+    desc: Run all tests
+    cmds:
+      - go test -v -race ./...
+
+  test:coverage:
+    desc: Run tests with coverage report
+    cmds:
+      - go test -coverprofile={{.COVERAGE_FILE}} ./...
+      - go tool cover -html={{.COVERAGE_FILE}}
+
+  test:unit:
+    desc: Run unit tests only (excluding integration tests)
+    cmds:
+      - go test -v -race -short ./...
+
+  # Code Quality
+  fmt:
+    desc: Format code
+    cmds:
+      - go fmt ./...
+      - gofumpt -l -w .
+    ignore_error: true
+
+  lint:
+    desc: Run all linters
+    cmds:
+      - task: lint:go
+      - task: lint:arch
+
+  lint:go:
+    desc: Run Go linter (golangci-lint)
+    cmds:
+      - golangci-lint run ./...
+
+  lint:arch:
+    desc: Run architecture linter (go-arch-lint)
+    cmds:
+      - go-arch-lint check
+
+  # Security
+  security:
+    desc: Run security checks
+    cmds:
+      - task: security:vuln
+      - task: security:scan
+
+  security:vuln:
+    desc: Check for known vulnerabilities (govulncheck)
+    cmds:
+      - govulncheck ./...
+
+  security:scan:
+    desc: Scan for vulnerabilities and misconfigurations (trivy)
+    cmds:
+      - trivy fs --severity HIGH,CRITICAL .
+
+  # Build
+  build:
+    desc: Build binary
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - go build -o {{.BUILD_DIR}}/{{.BINARY_NAME}} {{.CMD_DIR}}
+
+  build:all:
+    desc: Build for all platforms
+    cmds:
+      - task: build:linux
+      - task: build:darwin
+      - task: build:windows
+
+  build:linux:
+    desc: Build for Linux
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - GOOS=linux GOARCH=amd64 go build -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-linux-amd64 {{.CMD_DIR}}
+      - GOOS=linux GOARCH=arm64 go build -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-linux-arm64 {{.CMD_DIR}}
+
+  build:darwin:
+    desc: Build for macOS
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - GOOS=darwin GOARCH=amd64 go build -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-darwin-amd64 {{.CMD_DIR}}
+      - GOOS=darwin GOARCH=arm64 go build -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-darwin-arm64 {{.CMD_DIR}}
+
+  build:windows:
+    desc: Build for Windows
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - GOOS=windows GOARCH=amd64 go build -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-windows-amd64.exe {{.CMD_DIR}}
+
+  # Maintenance
+  clean:
+    desc: Clean build artifacts and caches
+    cmds:
+      - rm -rf {{.BUILD_DIR}}
+      - rm -f {{.COVERAGE_FILE}}
+      - go clean -cache -testcache -modcache
+
+  tidy:
+    desc: Tidy and verify dependencies
+    cmds:
+      - go mod tidy
+      - go mod verify
+
+  # Comprehensive checks
+  check:
+    desc: Run all checks (format + lint + security + test + build)
+    cmds:
+      - task: fmt
+      - task: lint
+      - task: security
+      - task: test
+      - task: build
+
+  ci:
+    desc: CI pipeline checks (lint + security + test + build)
+    cmds:
+      - task: lint
+      - task: security
+      - task: test
+      - task: build

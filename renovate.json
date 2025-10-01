@@ -1,0 +1,45 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    ":semanticCommitTypeAll(deps)"
+  ],
+  "schedule": ["before 9am on monday"],
+  "timezone": "Asia/Tokyo",
+  "labels": ["dependencies"],
+  "commitMessagePrefix": "deps:",
+  "prTitle": "deps: {{#if isSingleVersion}}{{depName}}{{else}}{{depName}} packages{{/if}}",
+  "packageRules": [
+    {
+      "description": "Golang dependencies",
+      "matchFileNames": ["go.mod", "go.sum"],
+      "matchDepTypes": ["require"],
+      "semanticCommitType": "deps",
+      "commitMessageTopic": "Go module {{depName}}",
+      "groupName": "Go dependencies"
+    },
+    {
+      "description": "GitHub Actions",
+      "matchFileNames": [".github/workflows/**"],
+      "matchDepTypes": ["action"],
+      "semanticCommitType": "ci",
+      "commitMessageTopic": "GitHub Action {{depName}}",
+      "groupName": "GitHub Actions"
+    }
+  ],
+  "golang": {
+    "minimumReleaseAge": "3 days"
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 9am on the first day of the month"]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"],
+    "dependencyDashboardApproval": false
+  },
+  "dependencyDashboard": true,
+  "automerge": false,
+  "rebaseWhen": "conflicted"
+}

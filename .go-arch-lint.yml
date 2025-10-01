@@ -1,0 +1,50 @@
+# go-portalloc: Simple CLI tool architecture validation
+# Clean layer separation: cmd → internal/cli → pkg/{isolation,ports}
+
+version: 3
+workdir: .
+
+allow:
+  deepScan: false  # Simple tool, basic validation only
+  depOnAnyVendor: true  # Allow vendor dependencies
+
+components:
+  # Command layer
+  cmd:
+    in: cmd/**
+
+  # CLI implementation layer
+  cli:
+    in: internal/cli/**
+
+  # Core isolation logic
+  isolation:
+    in: pkg/isolation/**
+
+  # Port allocation logic
+  ports:
+    in: pkg/ports/**
+
+  # Examples (can depend on anything)
+  examples:
+    in: examples/**
+
+deps:
+  cli:
+    mayDependOn:
+      - isolation
+      - ports
+
+  isolation:
+    mayDependOn:
+      - ports
+
+  cmd:
+    mayDependOn:
+      - cli
+
+  examples:
+    mayDependOn:
+      - isolation
+      - ports
+      - cli

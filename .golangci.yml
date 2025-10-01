@@ -1,0 +1,72 @@
+linters-settings:
+  errcheck:
+    # Ignore errors in deferred functions and cleanup operations
+    exclude-functions:
+      - (io.Closer).Close
+      - (*os.File).Close
+      - fmt.Fprintf
+      - fmt.Fprint
+      - fmt.Fprintln
+
+  govet:
+    # Allow intentional variable shadowing for error handling
+    enable-all: true
+    disable:
+      - shadow
+
+  gosec:
+    excludes:
+      - G304 # File path from variable (lockFile is from controlled input)
+
+linters:
+  enable:
+    - errcheck
+    - gofmt
+    - gofumpt
+    - govet
+    - gosec
+    - gocritic
+    - stylecheck
+
+issues:
+  exclude-rules:
+    # Exclude errcheck for cleanup operations with _ assignment
+    - path: pkg/isolation/environment.go
+      linters:
+        - errcheck
+      text: "Error return value of `.*ReleaseLock` is not checked"
+
+    - path: pkg/isolation/environment.go
+      linters:
+        - errcheck
+      text: "Error return value of `.*Cleanup` is not checked"
+
+    - path: pkg/isolation/environment.go
+      linters:
+        - errcheck
+      text: "Error return value of `fmt.Fprintf` is not checked"
+
+    - path: pkg/isolation/id.go
+      linters:
+        - errcheck
+      text: "Error return value of `os.MkdirAll` is not checked"
+
+    - path: pkg/isolation/id.go
+      linters:
+        - errcheck
+      text: "Error return value of `os.Remove` is not checked"
+
+    - path: pkg/ports/allocator.go
+      linters:
+        - errcheck
+      text: "Error return value of `listener.Close` is not checked"
+
+    # Exclude errors in test files
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+
+run:
+  timeout: 5m
+  go: '1.25'
