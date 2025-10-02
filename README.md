@@ -389,4 +389,4 @@ Copyright Pigeonworks LLC
 
 ---
 
-**Made with ❤️ by PigeonWorks LLC**
+**Made with ❤️ by Pigeonworks LLC**
