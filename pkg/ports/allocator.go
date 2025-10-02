@@ -13,6 +13,22 @@
 // limitations under the License.
 
 // Package ports provides dynamic port allocation for parallel test environments.
+//
+// This package offers concurrent-safe port allocation without external dependencies,
+// using pure Go standard library. It's designed for test isolation and development
+// environments where port conflicts must be avoided.
+//
+// Basic usage:
+//
+//	allocator := ports.NewAllocator(nil)
+//	basePort, err := allocator.AllocateRange(5)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	// Use ports: basePort, basePort+1, ..., basePort+4
+//
+// The allocator uses TCP listener tests to verify port availability,
+// ensuring accurate detection without requiring system tools like lsof or netstat.
 package ports
 
 import (
@@ -33,6 +49,21 @@ const (
 )
 
 // AllocatorConfig holds configuration for port allocation.
+//
+// Fields:
+//   - StartPort: Lower bound of port range (inclusive, default: 20000)
+//   - EndPort: Upper bound of port range (exclusive, default: 30000)
+//   - MaxRetries: Maximum number of allocation attempts (default: 10)
+//   - RetryDelay: Wait time between retries (default: 1s)
+//
+// Example custom configuration:
+//
+//	config := &AllocatorConfig{
+//	    StartPort:  10000,
+//	    EndPort:    20000,
+//	    MaxRetries: 20,
+//	    RetryDelay: 500 * time.Millisecond,
+//	}
 type AllocatorConfig struct {
 	StartPort  int
 	EndPort    int
@@ -41,6 +72,17 @@ type AllocatorConfig struct {
 }
 
 // DefaultAllocatorConfig returns default configuration.
+//
+// Default values:
+//   - StartPort: 20000
+//   - EndPort: 30000
+//   - MaxRetries: 10
+//   - RetryDelay: 1 second
+//
+// This range (20000-30000) is chosen to avoid conflicts with:
+//   - Well-known ports (0-1023)
+//   - Registered ports (1024-49151)
+//   - Most ephemeral port ranges (varies by OS, typically 32768-60999)
 func DefaultAllocatorConfig() *AllocatorConfig {
 	return &AllocatorConfig{
 		StartPort:  DefaultStartPort,
@@ -51,11 +93,33 @@ func DefaultAllocatorConfig() *AllocatorConfig {
 }
 
 // Allocator allocates available ports for test environments.
+//
+// The allocator is stateless and thread-safe. It checks port availability
+// at allocation time using TCP listeners, ensuring accurate detection
+// without caching or state management.
+//
+// Thread-safety: All methods are safe for concurrent use.
 type Allocator struct {
 	config *AllocatorConfig
 }
 
 // NewAllocator creates a new port allocator.
+//
+// If config is nil, DefaultAllocatorConfig() is used.
+//
+// Example with default config:
+//
+//	allocator := ports.NewAllocator(nil)
+//
+// Example with custom config:
+//
+//	config := &ports.AllocatorConfig{
+//	    StartPort:  15000,
+//	    EndPort:    25000,
+//	    MaxRetries: 5,
+//	    RetryDelay: 100 * time.Millisecond,
+//	}
+//	allocator := ports.NewAllocator(config)
 func NewAllocator(config *AllocatorConfig) *Allocator {
 	if config == nil {
 		config = DefaultAllocatorConfig()
@@ -81,6 +145,24 @@ func randomIntn(n int) (int, error) {
 }
 
 // AllocateRange allocates a range of consecutive available ports.
+//
+// Parameters:
+//   - portsNeeded: Number of consecutive ports to allocate (must be > 0)
+//
+// Returns:
+//   - int: Base port number (subsequent ports are basePort+1, basePort+2, ...)
+//   - error: Non-nil if allocation fails after MaxRetries attempts
+//
+// The method randomly selects a starting port within the configured range
+// and verifies all requested ports are available. If any port in the range
+// is unavailable, it retries with a different random starting point.
+//
+// Example:
+//
+//	basePort, err := allocator.AllocateRange(5)
+//	// Allocated ports: basePort, basePort+1, basePort+2, basePort+3, basePort+4
+//
+// Thread-safety: Safe for concurrent use.
 func (a *Allocator) AllocateRange(portsNeeded int) (int, error) {
 	if portsNeeded <= 0 {
 		return 0, fmt.Errorf("portsNeeded must be positive, got %d", portsNeeded)
@@ -135,11 +217,49 @@ func (a *Allocator) isPortAvailable(port int) bool {
 }
 
 // IsPortInUse checks if a port is currently in use.
+//
+// Parameters:
+//   - port: Port number to check
+//
+// Returns:
+//   - bool: true if port is in use, false if available
+//
+// This method attempts to bind a TCP listener to the port.
+// If binding succeeds, the port is available (returns false).
+// If binding fails, the port is in use (returns true).
+//
+// Example:
+//
+//	if allocator.IsPortInUse(8080) {
+//	    log.Println("Port 8080 is already in use")
+//	}
+//
+// Thread-safety: Safe for concurrent use.
 func (a *Allocator) IsPortInUse(port int) bool {
 	return !a.isPortAvailable(port)
 }
 
 // AllocateSpecific attempts to allocate specific ports.
+//
+// Parameters:
+//   - ports: Variable number of port numbers to check
+//
+// Returns:
+//   - error: Non-nil if any port is unavailable (error includes list of unavailable ports)
+//
+// This method verifies all specified ports are available without actually
+// reserving them. It's useful for pre-flight checks before starting services.
+//
+// Example:
+//
+//	err := allocator.AllocateSpecific(8080, 8081, 8082)
+//	if err != nil {
+//	    log.Fatal("Required ports unavailable:", err)
+//	}
+//
+// Thread-safety: Safe for concurrent use.
+// Note: This is a point-in-time check; ports may become unavailable
+// immediately after this method returns.
 func (a *Allocator) AllocateSpecific(ports ...int) error {
 	unavailable := []int{}
 
@@ -157,12 +277,34 @@ func (a *Allocator) AllocateSpecific(ports ...int) error {
 }
 
 // PortRange represents an allocated range of ports.
+//
+// Fields:
+//   - BasePort: Starting port number
+//   - Count: Number of consecutive ports in the range
+//
+// The range includes ports: [BasePort, BasePort+1, ..., BasePort+Count-1]
+//
+// Example:
+//
+//	pr := &PortRange{BasePort: 23000, Count: 5}
+//	// Represents ports: 23000, 23001, 23002, 23003, 23004
 type PortRange struct {
 	BasePort int
 	Count    int
 }
 
-// Ports returns all ports in the range.
+// Ports returns all ports in the range as a slice.
+//
+// Returns:
+//   - []int: Slice containing all port numbers in the range
+//
+// Example:
+//
+//	pr := &PortRange{BasePort: 23000, Count: 3}
+//	ports := pr.Ports() // [23000, 23001, 23002]
+//
+// The returned slice is a new allocation and can be modified without
+// affecting the PortRange.
 func (pr *PortRange) Ports() []int {
 	ports := make([]int, pr.Count)
 	for i := 0; i < pr.Count; i++ {
@@ -172,6 +314,20 @@ func (pr *PortRange) Ports() []int {
 }
 
 // GetPort returns a specific port by index.
+//
+// Parameters:
+//   - index: Zero-based index (0 returns BasePort, 1 returns BasePort+1, etc.)
+//
+// Returns:
+//   - int: Port number at the specified index
+//   - error: Non-nil if index is out of range [0, Count)
+//
+// Example:
+//
+//	pr := &PortRange{BasePort: 23000, Count: 5}
+//	port, err := pr.GetPort(2) // Returns 23002
+//
+// This is safer than direct slice indexing as it validates the index bounds.
 func (pr *PortRange) GetPort(index int) (int, error) {
 	if index < 0 || index >= pr.Count {
 		return 0, fmt.Errorf("index %d out of range [0,%d)", index, pr.Count)
