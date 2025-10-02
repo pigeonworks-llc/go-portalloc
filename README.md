@@ -51,7 +51,7 @@ docker-compose up -d
 go test ./...
 
 # Cleanup
-go-parallel-test-env cleanup --id abc123def456
+go-portalloc cleanup --id abc123def456
 ```
 
 ## 📦 Use Cases
@@ -68,7 +68,7 @@ jobs:
     steps:
       - name: Create isolated environment
         run: |
-          eval "$(go-parallel-test-env create --ports 5 --shell)"
+          eval "$(go-portalloc create --ports 5 --shell)"
           echo "ISOLATION_ID=$ISOLATION_ID" >> $GITHUB_ENV
 
       - name: Run tests
@@ -76,19 +76,19 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: go-parallel-test-env cleanup --id $ISOLATION_ID
+        run: go-portalloc cleanup --id $ISOLATION_ID
 ```
 
 ### Local Development
 
 ```bash
 # Terminal 1
-go-parallel-test-env create --ports 5 --instance-id branch-feature-a
+go-portalloc create --ports 5 --instance-id branch-feature-a
 source .env.isolation
 npm test
 
 # Terminal 2 (simultaneously)
-go-parallel-test-env create --ports 5 --instance-id branch-feature-b
+go-portalloc create --ports 5 --instance-id branch-feature-b
 source .env.isolation
 npm test
 
@@ -99,7 +99,7 @@ npm test
 
 ```bash
 # Allocate ports for multiple services
-go-parallel-test-env create --ports 10 --json > env.json
+go-portalloc create --ports 10 --json > env.json
 
 # Parse and use in docker-compose
 export POSTGRES_PORT=$(jq -r '.ports.ports[0]' env.json)
@@ -115,7 +115,7 @@ go test ./integration/...
 ### `create` - Create Isolated Environment
 
 ```bash
-go-parallel-test-env create [flags]
+go-portalloc create [flags]
 
 Flags:
   -p, --ports int          Number of ports to allocate (default 5)
@@ -131,7 +131,7 @@ Flags:
 ```
 ✅ Environment created successfully!
   Isolation ID:  abc123def456
-  Temp Directory: /tmp/aigis-test-abc123def456
+  Temp Directory: /tmp/portalloc-abc123def456
   Base Port:      23086
   Allocated Ports: [23086 23087 23088 23089 23090]
 ```
@@ -141,8 +141,8 @@ Flags:
 {
   "isolation_id": "abc123def456",
   "worktree_path": "/path/to/project",
-  "temp_dir": "/tmp/aigis-test-abc123def456",
-  "lock_file": "/tmp/go-parallel-test-env-locks/env-abc123def456.lock",
+  "temp_dir": "/tmp/portalloc-abc123def456",
+  "lock_file": "/tmp/portalloc-locks/env-abc123def456.lock",
   "env_file": "/path/to/project/.env.isolation",
   "ports": {
     "base_port": 23086,
@@ -155,7 +155,7 @@ Flags:
 **Shell:**
 ```bash
 export ISOLATION_ID=abc123def456
-export TEMP_DIR=/tmp/aigis-test-abc123def456
+export TEMP_DIR=/tmp/portalloc-abc123def456
 export PORT_BASE=23086
 export PORT_COUNT=5
 export FIRESTORE_PORT=23086
@@ -166,7 +166,7 @@ export API_PORT=23088
 ### `validate` - Validate Environment
 
 ```bash
-go-parallel-test-env validate --id <isolation-id>
+go-portalloc validate --id <isolation-id>
 
 # Checks:
 # ✓ Lock file exists
@@ -179,10 +179,10 @@ go-parallel-test-env validate --id <isolation-id>
 
 ```bash
 # Single environment
-go-parallel-test-env cleanup --id <isolation-id>
+go-portalloc cleanup --id <isolation-id>
 
 # All environments
-go-parallel-test-env cleanup --all
+go-portalloc cleanup --all
 ```
 
 ## 🏗️ Architecture
@@ -253,9 +253,9 @@ go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 
 # Integration test
-./bin/go-parallel-test-env create --ports 5
-./bin/go-parallel-test-env validate --id <id>
-./bin/go-parallel-test-env cleanup --id <id>
+./bin/go-portalloc create --ports 5
+./bin/go-portalloc validate --id <id>
+./bin/go-portalloc cleanup --id <id>
 ```
 
 ## 🔧 Programmatic Usage
@@ -264,8 +264,8 @@ go tool cover -html=coverage.out
 
 ```go
 import (
-    "github.com/pigeonworks-llc/go-parallel-test-env/pkg/isolation"
-    "github.com/pigeonworks-llc/go-parallel-test-env/pkg/ports"
+    "github.com/pigeonworks-llc/go-portalloc/pkg/isolation"
+    "github.com/pigeonworks-llc/go-portalloc/pkg/ports"
 )
 
 // Create environment manager
@@ -303,11 +303,11 @@ if err := manager.Validate(env); err != nil {
 set -e
 
 # Create environment
-ENV_JSON=$(go-parallel-test-env create --ports 5 --json)
+ENV_JSON=$(go-portalloc create --ports 5 --json)
 ISOLATION_ID=$(echo "$ENV_JSON" | jq -r '.isolation_id')
 
 # Trap cleanup on exit
-trap "go-parallel-test-env cleanup --id $ISOLATION_ID" EXIT
+trap "go-portalloc cleanup --id $ISOLATION_ID" EXIT
 
 # Use environment
 source .env.isolation
@@ -319,7 +319,7 @@ go test ./...
 
 ## 🆚 Comparison
 
-| Feature | go-parallel-test-env | testcontainers | localstack | docker-compose |
+| Feature | go-portalloc | testcontainers | localstack | docker-compose |
 |---------|---------------------|----------------|------------|----------------|
 | **Language** | ✅ Agnostic | ⚠️ Java/Go/Python | ⚠️ AWS only | ✅ Agnostic |
 | **Dependencies** | ✅ Zero | ❌ Docker required | ❌ Docker + AWS | ❌ Docker |
@@ -328,7 +328,7 @@ go test ./...
 | **Parallel Safety** | ✅ Atomic locks | ⚠️ Container isolation | ⚠️ Container isolation | ⚠️ Network isolation |
 | **Cleanup** | ✅ Automatic | ⚠️ Manual/auto | ⚠️ Manual | ⚠️ Manual |
 
-**When to use `go-parallel-test-env`:**
+**When to use `go-portalloc`:**
 - ✅ Lightweight parallel test isolation
 - ✅ No Docker dependency needed
 - ✅ Pure port/directory isolation sufficient
@@ -347,8 +347,8 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 
 ```bash
 # Clone repository
-git clone https://github.com/pigeonworks-llc/go-parallel-test-env.git
-cd go-parallel-test-env
+git clone https://github.com/pigeonworks-llc/go-portalloc.git
+cd go-portalloc
 
 # Install dependencies
 go mod download
@@ -360,7 +360,7 @@ go test ./...
 golangci-lint run
 
 # Build CLI
-go build -o bin/go-parallel-test-env ./cmd/go-parallel-test-env
+go build -o bin/go-portalloc ./cmd/go-portalloc
 ```
 
 ## 📝 License
@@ -378,7 +378,7 @@ Copyright Pigeonworks LLC
 ## 📚 Documentation
 
 - [Architecture Design](docs/architecture.md)
-- [API Reference](https://pkg.go.dev/github.com/pigeonworks-llc/go-parallel-test-env)
+- [API Reference](https://pkg.go.dev/github.com/pigeonworks-llc/go-portalloc)
 - [Examples](examples/)
 - [Troubleshooting](docs/troubleshooting.md)
 
