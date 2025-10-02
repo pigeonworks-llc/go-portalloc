@@ -3,8 +3,7 @@
 [![Go Version](https://img.shields.io/badge/go-1.24+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-> **Kill "Port Already in Use" Forever**
-> **Zero-Overhead Port Allocation**
+> **Kill "Port Already in Use" Forever: Zero-Overhead Port Allocation**
 
 Collision-free dynamic port allocation for parallel testing and development.
 Pure Go stdlib. Zero external dependencies. Just works.
