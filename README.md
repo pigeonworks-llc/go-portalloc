@@ -390,13 +390,12 @@ config := &isolation.Config{
 idGen := isolation.NewIDGenerator(config)
 isolationID, err := idGen.Generate()
 
-// Acquire lock
-lockManager := isolation.NewLockManager()
-lockPath, err := lockManager.AcquireLock(isolationID, ".")
+// Create lock
+lockPath, err := idGen.CreateLock(isolationID)
 if err != nil {
-    log.Fatal("failed to acquire lock:", err)
+    log.Fatal("failed to create lock:", err)
 }
-defer lockManager.ReleaseLock(lockPath)
+defer idGen.ReleaseLock(isolationID)
 ```
 
 **PortRange utilities:**

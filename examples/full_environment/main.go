@@ -63,7 +63,7 @@ func main() {
 	fmt.Printf("   ✓ Environment created successfully\n")
 	fmt.Printf("     Isolation ID:   %s\n", env.ID)
 	fmt.Printf("     Temp Directory: %s\n", env.TempDir)
-	fmt.Printf("     Lock File:      %s\n", env.LockPath)
+	fmt.Printf("     Lock File:      %s\n", env.LockFile)
 	fmt.Printf("     Base Port:      %d\n", env.Ports.BasePort)
 	fmt.Printf("     Port Count:     %d\n", env.Ports.Count)
 	fmt.Printf("     All Ports:      %v\n\n", env.Ports.Ports())
@@ -94,8 +94,8 @@ func main() {
 	}
 
 	// Check lock file
-	if _, err := os.Stat(env.LockPath); err == nil {
-		fmt.Printf("   ✓ Lock file exists: %s\n", env.LockPath)
+	if _, err := os.Stat(env.LockFile); err == nil {
+		fmt.Printf("   ✓ Lock file exists: %s\n", env.LockFile)
 	}
 
 	// Check env file if it exists
@@ -108,7 +108,6 @@ func main() {
 
 	// Example 6: Manual lock management (advanced usage)
 	fmt.Println("6. Demonstrating manual lock management...")
-	lockManager := isolation.NewLockManager()
 
 	// Generate another isolation ID
 	isolationID2, err := idGen.Generate()
@@ -117,15 +116,20 @@ func main() {
 	}
 	fmt.Printf("   Generated ID: %s\n", isolationID2)
 
-	// Acquire lock
-	lockPath2, err := lockManager.AcquireLock(isolationID2, worktree)
+	// Create lock
+	lockPath2, err := idGen.CreateLock(isolationID2)
 	if err != nil {
-		log.Fatal("Failed to acquire lock:", err)
+		log.Fatal("Failed to create lock:", err)
 	}
-	fmt.Printf("   ✓ Lock acquired: %s\n", lockPath2)
+	fmt.Printf("   ✓ Lock created: %s\n", lockPath2)
+
+	// Check if locked
+	if idGen.IsLocked(isolationID2) {
+		fmt.Printf("   ✓ Lock verified\n")
+	}
 
 	// Release lock
-	if err := lockManager.ReleaseLock(lockPath2); err != nil {
+	if err := idGen.ReleaseLock(isolationID2); err != nil {
 		log.Fatal("Failed to release lock:", err)
 	}
 	fmt.Printf("   ✓ Lock released\n\n")
@@ -141,7 +145,7 @@ func main() {
 	if _, err := os.Stat(env.TempDir); os.IsNotExist(err) {
 		fmt.Println("   ✓ Temp directory removed")
 	}
-	if _, err := os.Stat(env.LockPath); os.IsNotExist(err) {
+	if _, err := os.Stat(env.LockFile); os.IsNotExist(err) {
 		fmt.Println("   ✓ Lock file removed")
 	}
 
