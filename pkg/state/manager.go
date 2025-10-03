@@ -123,7 +123,7 @@ func (m *Manager) RecordEnvironment(env *isolation.Environment) error {
 	if err := m.lockFile(f); err != nil {
 		return fmt.Errorf("failed to lock state file: %w", err)
 	}
-	defer m.unlockFile(f)
+	defer func() { _ = m.unlockFile(f) }()
 
 	// Read current state
 	state, err := m.readState(f)
@@ -178,7 +178,7 @@ func (m *Manager) RemoveEnvironment(isolationID string) error {
 	if err := m.lockFile(f); err != nil {
 		return fmt.Errorf("failed to lock state file: %w", err)
 	}
-	defer m.unlockFile(f)
+	defer func() { _ = m.unlockFile(f) }()
 
 	// Read current state
 	state, err := m.readState(f)
@@ -220,7 +220,7 @@ func (m *Manager) ListEnvironments() ([]*EnvironmentState, error) {
 	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_SH); err != nil {
 		return nil, fmt.Errorf("failed to lock state file: %w", err)
 	}
-	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+	defer func() { _ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN) }()
 
 	// Read state
 	state, err := m.readState(f)

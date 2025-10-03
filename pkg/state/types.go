@@ -19,28 +19,28 @@ import "time"
 
 // State represents the entire state file structure.
 type State struct {
-	Version           string                `json:"version"`
-	Environments      []*EnvironmentState   `json:"environments"`
-	LastReconciledAt  time.Time             `json:"last_reconciled_at"`
+	LastReconciledAt time.Time           `json:"last_reconciled_at"`
+	Version          string              `json:"version"`
+	Environments     []*EnvironmentState `json:"environments"`
 }
 
 // EnvironmentState represents a single environment's state.
 type EnvironmentState struct {
-	ID           string      `json:"id"`
-	PID          int         `json:"pid"`
+	Ports        *PortsState `json:"ports"`
 	CreatedAt    time.Time   `json:"created_at"`
+	ID           string      `json:"id"`
 	WorktreePath string      `json:"worktree_path"`
 	TempDir      string      `json:"temp_dir"`
 	LockFile     string      `json:"lock_file"`
 	EnvFile      string      `json:"env_file"`
-	Ports        *PortsState `json:"ports"`
+	PID          int         `json:"pid"`
 }
 
 // PortsState represents the port allocation state.
 type PortsState struct {
+	Allocated []int `json:"allocated"`
 	BasePort  int   `json:"base_port"`
 	Count     int   `json:"count"`
-	Allocated []int `json:"allocated"`
 }
 
 // EnvironmentStatus represents the status of an environment.

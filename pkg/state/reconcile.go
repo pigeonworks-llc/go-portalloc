@@ -63,7 +63,7 @@ func (m *Manager) Reconcile(lockDir string) (int, error) {
 	if err := m.lockFile(f); err != nil {
 		return 0, fmt.Errorf("failed to lock state file: %w", err)
 	}
-	defer m.unlockFile(f)
+	defer func() { _ = m.unlockFile(f) }()
 
 	if err := m.writeState(f, newState); err != nil {
 		return 0, err

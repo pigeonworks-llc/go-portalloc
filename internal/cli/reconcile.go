@@ -23,9 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	reconcileLockDir string
-)
+var reconcileLockDir string
 
 var reconcileCmd = &cobra.Command{
 	Use:   "reconcile",

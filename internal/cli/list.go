@@ -27,9 +27,9 @@ import (
 )
 
 var (
-	listFormat     string
-	listLockDir    string
-	listReconcile  bool
+	listFormat    string
+	listLockDir   string
+	listReconcile bool
 )
 
 var listCmd = &cobra.Command{
@@ -131,7 +131,7 @@ func outputListTable(envs []*state.EnvironmentState) error {
 		status := state.GetEnvironmentStatus(env)
 		statusStr := string(status)
 		if status == state.StatusStale {
-			statusStr = statusStr + " ⚠️"
+			statusStr += " ⚠️"
 		}
 
 		// Format ports
