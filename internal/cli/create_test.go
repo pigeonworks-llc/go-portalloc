@@ -149,4 +149,175 @@ func TestCLIIntegration(t *testing.T) {
 		// Cleanup of non-existent environment should not error
 		assert.NoError(t, err)
 	})
+
+	t.Run("list command shows environments", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Create an environment
+		createCmd := exec.Command("/tmp/go-portalloc-test", "create", "--json")
+		createCmd.Dir = tmpDir
+		createOutput, err := createCmd.CombinedOutput()
+		require.NoError(t, err)
+
+		var createResult map[string]interface{}
+		require.NoError(t, json.Unmarshal(createOutput, &createResult))
+		isolationID := createResult["isolation_id"].(string)
+
+		// List environments (table format)
+		listCmd := exec.Command("/tmp/go-portalloc-test", "list")
+		listCmd.Dir = tmpDir
+		listOutput, err := listCmd.CombinedOutput()
+		require.NoError(t, err)
+
+		outputStr := string(listOutput)
+		assert.Contains(t, outputStr, isolationID)
+		assert.Contains(t, outputStr, "STATUS")
+
+		// List environments (JSON format)
+		listJSONCmd := exec.Command("/tmp/go-portalloc-test", "list", "--format", "json")
+		listJSONCmd.Dir = tmpDir
+		listJSONOutput, err := listJSONCmd.CombinedOutput()
+		require.NoError(t, err)
+
+		var listResult []map[string]interface{}
+		require.NoError(t, json.Unmarshal(listJSONOutput, &listResult))
+		assert.NotEmpty(t, listResult)
+
+		// Find our environment in the list
+		found := false
+		for _, env := range listResult {
+			if env["id"] == isolationID {
+				found = true
+				assert.Contains(t, env, "status")
+				assert.Contains(t, env, "ports")
+				break
+			}
+		}
+		assert.True(t, found, "environment not found in list")
+
+		// Cleanup
+		cleanupCmd := exec.Command("/tmp/go-portalloc-test", "cleanup", "--id", isolationID)
+		cleanupCmd.Dir = tmpDir
+		_ = cleanupCmd.Run()
+	})
+
+	t.Run("reconcile command rebuilds state", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Create an environment
+		createCmd := exec.Command("/tmp/go-portalloc-test", "create", "--json")
+		createCmd.Dir = tmpDir
+		createOutput, err := createCmd.CombinedOutput()
+		require.NoError(t, err)
+
+		var createResult map[string]interface{}
+		require.NoError(t, json.Unmarshal(createOutput, &createResult))
+		isolationID := createResult["isolation_id"].(string)
+
+		// Run reconcile
+		reconcileCmd := exec.Command("/tmp/go-portalloc-test", "reconcile")
+		reconcileCmd.Dir = tmpDir
+		reconcileOutput, err := reconcileCmd.CombinedOutput()
+		require.NoError(t, err)
+
+		outputStr := string(reconcileOutput)
+		assert.Contains(t, outputStr, "Reconciling state")
+		assert.Contains(t, outputStr, "State file updated")
+
+		// Verify environment still exists after reconcile
+		listCmd := exec.Command("/tmp/go-portalloc-test", "list", "--format", "json")
+		listCmd.Dir = tmpDir
+		listOutput, err := listCmd.CombinedOutput()
+		require.NoError(t, err)
+
+		var listResult []map[string]interface{}
+		require.NoError(t, json.Unmarshal(listOutput, &listResult))
+
+		found := false
+		for _, env := range listResult {
+			if env["id"] == isolationID {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "environment should exist after reconcile")
+
+		// Cleanup
+		cleanupCmd := exec.Command("/tmp/go-portalloc-test", "cleanup", "--id", isolationID)
+		cleanupCmd.Dir = tmpDir
+		_ = cleanupCmd.Run()
+	})
+
+	t.Run("cleanup --stale removes dead processes", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Create multiple environments
+		var isolationIDs []string
+		for i := 0; i < 3; i++ {
+			createCmd := exec.Command("/tmp/go-portalloc-test", "create", "--json")
+			createCmd.Dir = tmpDir
+			createOutput, err := createCmd.CombinedOutput()
+			require.NoError(t, err)
+
+			var createResult map[string]interface{}
+			require.NoError(t, json.Unmarshal(createOutput, &createResult))
+			isolationIDs = append(isolationIDs, createResult["isolation_id"].(string))
+		}
+
+		// All environments should be stale (created by different process)
+		staleCmd := exec.Command("/tmp/go-portalloc-test", "cleanup", "--stale")
+		staleCmd.Dir = tmpDir
+		staleOutput, err := staleCmd.CombinedOutput()
+		require.NoError(t, err)
+
+		outputStr := string(staleOutput)
+		assert.Contains(t, outputStr, "stale environment(s)")
+		assert.Contains(t, outputStr, "Cleaned up")
+
+		// Verify all environments were cleaned
+		listCmd := exec.Command("/tmp/go-portalloc-test", "list", "--format", "json")
+		listCmd.Dir = tmpDir
+		listOutput, err := listCmd.CombinedOutput()
+		require.NoError(t, err)
+
+		var listResult []map[string]interface{}
+		if len(listOutput) > 0 && string(listOutput) != "No environments found\n" {
+			require.NoError(t, json.Unmarshal(listOutput, &listResult))
+
+			// Verify our test environments are not in the list
+			for _, env := range listResult {
+				for _, id := range isolationIDs {
+					assert.NotEqual(t, id, env["id"], "stale environment should be cleaned")
+				}
+			}
+		}
+	})
+
+	t.Run("list --reconcile forces state rebuild", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Create an environment
+		createCmd := exec.Command("/tmp/go-portalloc-test", "create", "--json")
+		createCmd.Dir = tmpDir
+		createOutput, err := createCmd.CombinedOutput()
+		require.NoError(t, err)
+
+		var createResult map[string]interface{}
+		require.NoError(t, json.Unmarshal(createOutput, &createResult))
+		isolationID := createResult["isolation_id"].(string)
+
+		// List with reconcile
+		listCmd := exec.Command("/tmp/go-portalloc-test", "list", "--reconcile")
+		listCmd.Dir = tmpDir
+		listOutput, err := listCmd.CombinedOutput()
+		require.NoError(t, err)
+
+		outputStr := string(listOutput)
+		assert.Contains(t, outputStr, isolationID)
+
+		// Cleanup
+		cleanupCmd := exec.Command("/tmp/go-portalloc-test", "cleanup", "--id", isolationID)
+		cleanupCmd.Dir = tmpDir
+		_ = cleanupCmd.Run()
+	})
 }

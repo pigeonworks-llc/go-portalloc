@@ -59,6 +59,8 @@ func init() {
 	rootCmd.AddCommand(createCmd)
 	rootCmd.AddCommand(cleanupCmd)
 	rootCmd.AddCommand(validateCmd)
+	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(reconcileCmd)
 	rootCmd.AddCommand(versionCmd)
 }
 

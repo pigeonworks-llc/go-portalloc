@@ -13,8 +13,3 @@
 // limitations under the License.
 
 package isolation
-
-import "errors"
-
-// ErrIndexOutOfRange is returned when port index is out of range
-var ErrIndexOutOfRange = errors.New("index out of range")

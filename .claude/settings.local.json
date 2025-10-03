@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git pull:*)",
+      "Bash(go test:*)",
+      "Bash(./bin/go-portalloc list:*)",
+      "Bash(./bin/go-portalloc:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

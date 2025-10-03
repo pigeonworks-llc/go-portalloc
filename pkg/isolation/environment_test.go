@@ -22,6 +22,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/pigeonworks-llc/go-portalloc/pkg/ports"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -111,7 +112,7 @@ func TestEnvironmentManager_createEnvFile(t *testing.T) {
 		ID:           "test-123",
 		WorktreePath: tmpDir,
 		TempDir:      "/tmp/test-123",
-		Ports: &PortRange{
+		Ports: &ports.PortRange{
 			BasePort: 20000,
 			Count:    5,
 		},

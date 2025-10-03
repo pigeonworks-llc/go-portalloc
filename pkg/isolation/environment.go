@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/pigeonworks-llc/go-portalloc/pkg/ports"
 )
 
 // Environment represents an isolated test environment.
@@ -26,7 +28,7 @@ type Environment struct {
 	ID           string
 	WorktreePath string
 	TempDir      string
-	Ports        *PortRange
+	Ports        *ports.PortRange
 	LockFile     string
 	EnvFile      string
 }
@@ -88,7 +90,7 @@ func (em *EnvironmentManager) CreateEnvironment(portsNeeded int) (*Environment, 
 		ID:           isolationID,
 		WorktreePath: em.idGen.config.WorktreePath,
 		TempDir:      tmpDir,
-		Ports: &PortRange{
+		Ports: &ports.PortRange{
 			BasePort: basePort,
 			Count:    portsNeeded,
 		},

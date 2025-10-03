@@ -22,6 +22,7 @@ import (
 
 	"github.com/pigeonworks-llc/go-portalloc/pkg/isolation"
 	"github.com/pigeonworks-llc/go-portalloc/pkg/ports"
+	"github.com/pigeonworks-llc/go-portalloc/pkg/state"
 	"github.com/spf13/cobra"
 )
 
@@ -95,6 +96,13 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	env, err := manager.CreateEnvironment(createPortsCount)
 	if err != nil {
 		return fmt.Errorf("failed to create environment: %w", err)
+	}
+
+	// Record environment in state file
+	stateMgr, err := state.NewManager()
+	if err == nil {
+		// Best effort - don't fail if state recording fails
+		_ = stateMgr.RecordEnvironment(env)
 	}
 
 	// Output based on format
