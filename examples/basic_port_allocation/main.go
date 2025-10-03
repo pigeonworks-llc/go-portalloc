@@ -31,7 +31,7 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Basic Port Allocation Example ===\n")
+	fmt.Println("=== Basic Port Allocation Example ===")
 
 	// Create allocator with default config (ports 20000-30000)
 	allocator := ports.NewAllocator(nil)

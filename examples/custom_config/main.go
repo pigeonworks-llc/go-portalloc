@@ -29,7 +29,7 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Custom Configuration Example ===\n")
+	fmt.Println("=== Custom Configuration Example ===")
 
 	// Example 1: Custom port range
 	fmt.Println("1. Creating allocator with custom port range (10000-15000)...")

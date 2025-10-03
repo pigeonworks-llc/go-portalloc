@@ -31,7 +31,7 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Full Environment Management Example ===\n")
+	fmt.Println("=== Full Environment Management Example ===")
 
 	// Get current working directory
 	worktree, err := os.Getwd()
@@ -50,7 +50,7 @@ func main() {
 	idGen := isolation.NewIDGenerator(config)
 	portAlloc := ports.NewAllocator(nil)
 	manager := isolation.NewEnvironmentManager(idGen, portAlloc)
-	fmt.Println("   ✓ Environment manager created\n")
+	fmt.Println("   ✓ Environment manager created")
 
 	// Example 2: Create isolated environment
 	fmt.Println("2. Creating isolated environment with 5 ports...")
@@ -83,7 +83,7 @@ func main() {
 	if err := manager.Validate(env); err != nil {
 		log.Fatal("Environment validation failed:", err)
 	}
-	fmt.Println("   ✓ Environment validation passed\n")
+	fmt.Println("   ✓ Environment validation passed")
 
 	// Example 5: Check environment files
 	fmt.Println("5. Checking environment files...")
