@@ -259,7 +259,64 @@ go tool cover -html=coverage.out
 
 ## 🔧 Programmatic Usage
 
-### Go Library
+### Go API Overview
+
+go-portalloc provides three main packages for programmatic use:
+
+| Package | Description | Use Case |
+|---------|-------------|----------|
+| `pkg/ports` | Port allocation and availability checking | Standalone port management |
+| `pkg/isolation` | ID generation and locking | Unique environment isolation |
+| `pkg/isolation` | Full environment management | Complete test isolation |
+
+### Package: `pkg/ports`
+
+**Simple port allocation without environment isolation.**
+
+```go
+import "github.com/pigeonworks-llc/go-portalloc/pkg/ports"
+
+// Create allocator with default config (ports 20000-30000)
+allocator := ports.NewAllocator(nil)
+
+// Allocate consecutive ports
+basePort, err := allocator.AllocateRange(5)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Use allocated ports
+fmt.Printf("Allocated ports: %d-%d\n", basePort, basePort+4)
+
+// Check specific port availability
+if allocator.IsPortInUse(8080) {
+    log.Println("Port 8080 is already in use")
+}
+
+// Verify specific ports are available
+err = allocator.AllocateSpecific(3000, 3001, 3002)
+if err != nil {
+    log.Fatal("Ports unavailable:", err)
+}
+```
+
+**Custom port range configuration:**
+
+```go
+config := &ports.AllocatorConfig{
+    StartPort:  10000,
+    EndPort:    20000,
+    MaxRetries: 20,
+    RetryDelay: 500 * time.Millisecond,
+}
+
+allocator := ports.NewAllocator(config)
+basePort, err := allocator.AllocateRange(10)
+```
+
+### Package: `pkg/isolation`
+
+**Full environment management with ID generation, locking, and cleanup.**
 
 ```go
 import (
@@ -288,11 +345,74 @@ defer manager.Cleanup(env)
 // Use environment
 fmt.Printf("Isolation ID: %s\n", env.ID)
 fmt.Printf("Base Port: %d\n", env.Ports.BasePort)
+fmt.Printf("All Ports: %v\n", env.Ports.Ports())
 
 // Validate isolation
 if err := manager.Validate(env); err != nil {
     log.Fatal("validation failed:", err)
 }
+```
+
+### Advanced Usage Examples
+
+**Parallel test isolation:**
+
+```go
+func TestParallelExecution(t *testing.T) {
+    t.Parallel()
+
+    manager := createTestManager()
+    env, err := manager.CreateEnvironment(3)
+    require.NoError(t, err)
+    defer manager.Cleanup(env)
+
+    // Each parallel test gets isolated ports
+    serverPort, _ := env.Ports.GetPort(0)
+    dbPort, _ := env.Ports.GetPort(1)
+    cachePort, _ := env.Ports.GetPort(2)
+
+    // Run test with isolated resources
+    server := startTestServer(serverPort)
+    defer server.Close()
+}
+```
+
+**Manual ID generation and locking:**
+
+```go
+import "github.com/pigeonworks-llc/go-portalloc/pkg/isolation"
+
+// Generate unique isolation ID
+config := &isolation.Config{
+    WorktreePath: ".",
+    InstanceID:   "custom-id",
+}
+idGen := isolation.NewIDGenerator(config)
+isolationID, err := idGen.Generate()
+
+// Create lock
+lockPath, err := idGen.CreateLock(isolationID)
+if err != nil {
+    log.Fatal("failed to create lock:", err)
+}
+defer idGen.ReleaseLock(isolationID)
+```
+
+**PortRange utilities:**
+
+```go
+portRange := &ports.PortRange{
+    BasePort: 23000,
+    Count:    5,
+}
+
+// Get all ports as slice
+allPorts := portRange.Ports() // [23000, 23001, 23002, 23003, 23004]
+
+// Get specific port by index
+apiPort, err := portRange.GetPort(0)    // 23000
+dbPort, err := portRange.GetPort(1)     // 23001
+cachePort, err := portRange.GetPort(2)  // 23002
 ```
 
 ### Shell Script Integration
