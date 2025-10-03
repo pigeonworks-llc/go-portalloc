@@ -92,7 +92,7 @@ func runValidate(cmd *cobra.Command, args []string) error {
 		TempDir:      tmpDir,
 		LockFile:     lockFile,
 		EnvFile:      envFile,
-		Ports:        &isolation.PortRange{BasePort: 0, Count: 0}, // Ports not needed for basic validation
+		Ports:        &ports.PortRange{BasePort: 0, Count: 0}, // Ports not needed for basic validation
 	}
 
 	// Validate environment
